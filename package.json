@@ -46,7 +46,9 @@
     "react-select": "^1.0.0-beta14",
     "react-tap-event-plugin": "^2.0.0",
     "superagent": "^2.2.0",
-    "swagger-client": "^2.1.18"
+    "swagger-client": "^2.1.18",
+    "amqp": "0.2.3",
+    "bluebird": "^2.8.0"
   },
   "devDependencies": {
     "babel": "^6.5.2",

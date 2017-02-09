@@ -39,40 +39,41 @@ var wsServer = ws.createServer(function(conn){
     }
 });
 
-var app = express();
-app.use(cors());
-app.options('*', cors());
 
-// Parse request body. Limit set to 50MB
-app.use(bodyParser.json({ limit: '50mb' }));
+var amqp = require('amqp');
 
-app.post('/webhook', function(req, res){
-    console.log('posting /webhook', {msg: req.body});
-    var body = req.body || {};
-    res.send('hello from post_webhook\n');
-    if(wsConn){
-        console.log('sending ws message');
-        wsConn.send(JSON.stringify(req.body));
-    }
+var exchangeOption = {
+    type: "topic",
+    durable: true,
+    autoDelete: false
+};
+
+var con = new amqp.createConnection({
+    url: "amqp://guest:guest@10.62.59.220:56720"
 });
 
+con.on('ready', function() {
+    console.log('amqp connection ready');
+    con.ext = con.exchange("on.events", exchangeOption, function() {
+        console.log('exchange created');
+        var q = con.queue('eventQueue', {'exclusive': true}, function(queue) {
+            console.log(queue.name + ' created');
+            queue.bind('on.events', '#', function() {
+                queue.subscribe(function(msg, header, deliveryInfo, msgObj) {
+                    console.log('deliveryInfo', deliveryInfo)
+                    console.log('msg', msg);
+                    if(wsConn){
+                        console.log('sending ws message');
+                        wsConn.send(JSON.stringify({"msg":msg, "deliveryInfo": deliveryInfo}));
+                    }
 
-var httpServer = http.createServer(app);
-
-httpServer.on('close', function(){
-    console.log('http server started');
+                })
+            });
+        });
+    });
 });
 
-httpServer.on('connection', function(){
-    console.log('http server connected');
+con.on('error', function(err) {
+    console.log('amqp connection error', err);
 });
 
-httpServer.listen(httpPort, address, function(err){
-    if(err){
-        console.log('http server listen error', err);
-        return;
-    } else {
-        console.log('http server listening on: ', address, httpPort);
-        httpServer.timeout = 86400000;
-    }
-});
