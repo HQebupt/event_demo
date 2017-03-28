@@ -182,9 +182,12 @@ export default class App extends Component {
             self.graphProgressCollection[graphId].tasks[taskId].taskStatus = "succeeded";
         }
 
-        //var count = Object.keys(self.graphProgressCollection[graphId].tasks).length;
+        var count = Object.keys(self.graphProgressCollection[graphId].tasks).length;
         //console.log("!!!!", count);
-        for (let i = payload.progress.value; i < payload.progress.maximum; i ++) {
+        //console.log(payload.progress.value);
+        //console.log(payload.progress.maximum);
+        for (let i = count; i < payload.progress.maximum; i ++) {
+            //console.log(i);
             self.graphProgressCollection[graphId].tasks["TBD "+(i+1)]={
                 taskStatus: "pending",
                 taskProgress: 0
