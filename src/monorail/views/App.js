@@ -23,6 +23,7 @@ export default class App extends Component {
 
         let self = this;
 
+        self.msgQueue = [];
         self.tableHeaderSent = true;
 
         self.graphProgressCollection = [];
@@ -31,27 +32,17 @@ export default class App extends Component {
         console.log("Starting to monitor websocket");
         self.events = new ProgressEventsMessenger();
         self.events.connect();
+        setInterval(self.decodeProgress.bind(self), 1000);
+
         self.events.listen(msg => {
 
             if(! self.state.hasFirstEvent) {
                 self.setState({hasFirstEvent: true});
             }
-
+            console.log('--------------');
             console.log(msg);
+            self.msgQueue.push(msg);
 
-            //let action = self.checkEventAction(msg);
-            //console.log(action);
-
-            //if (action === 'progress')
-            //{
-            self.decodeProgress(msg.data.data);
-            //} else if (action === 'finished') {
-                //self.decodeFinish(msg.data.typeId, msg.data.data);
-            //}
-
-            console.log('-----graphProgressCollection', self.graphProgressCollection);
-
-            self.setState(self.graphProgressCollection);
         });
 
         return this;
@@ -104,94 +95,110 @@ export default class App extends Component {
         console.log(self.graphProgressCollection[graphId].graphStatus);
     }
 
-    decodeProgress = (payload) => {
+    decodeProgress = () => {
 
         var self = this;
 
-        let graphId = payload.graphId;
+        self.msgQueue.forEach(function(msg){
+            let payload = msg.data.data;
+            let graphId = payload.graphId;
 
-        if (self.graphFinished.indexOf(graphId) > 0) {
-            return;
-        }
+            if (self.graphFinished.indexOf(graphId) > 0) {
+                return;
+            }
 
-        // Get graph info
-        if (!self.graphProgressCollection.hasOwnProperty(graphId)) {
-            self.graphProgressCollection[graphId] = {
-                graphId: payload.graphId,
-                graphDesc: payload.progress.description,
-                graphName: payload.graphName,
-                graphProgress: parseInt(payload.progress.percentage),
-                tasks: {}
-            };
-        }
-        else {
-            self.graphProgressCollection[graphId].graphDesc =
-                payload.progress.description;
-            self.graphProgressCollection[graphId].graphProgress =
-                parseInt(payload.progress.percentage);
-        }
+            // Get graph info
+            if (!self.graphProgressCollection.hasOwnProperty(graphId)) {
+                self.graphProgressCollection[graphId] = {
+                    graphId: payload.graphId,
+                    graphDesc: payload.progress.description,
+                    graphName: payload.graphName,
+                    graphProgress: parseInt(payload.progress.percentage),
+                    tasks: {}
+                };
+            }
+            else {
+                self.graphProgressCollection[graphId].graphDesc =
+                    payload.progress.description;
+                self.graphProgressCollection[graphId].graphProgress =
+                    parseInt(payload.progress.percentage);
+            }
 
-        console.log(payload.progress.description);
-        if (self.graphProgressCollection[graphId].graphProgress < 100) {
-            self.graphProgressCollection[graphId].graphStatus = "running";
-        }
-        else if (payload.progress.description.match(new RegExp('cancelled'))){
-            self.graphProgressCollection[graphId].graphStatus = "cancelled";
+            if (self.graphProgressCollection[graphId].graphProgress < 100) {
+                self.graphProgressCollection[graphId].graphStatus = "running";
+            }
+            else if (payload.progress.description.match(new RegExp('cancelled'))){
+                self.graphProgressCollection[graphId].graphStatus = "cancelled";
+                for (var key in self.graphProgressCollection[graphId].tasks) {
+                    self.graphProgressCollection[graphId].tasks[key].taskStatus = "cancelled";
+                }
+                self.graphFinished.push(graphId);
+                return;
+            }
+            else {
+                self.graphProgressCollection[graphId].graphStatus = "succeeded";
+            }
+
             for (var key in self.graphProgressCollection[graphId].tasks) {
-                self.graphProgressCollection[graphId].tasks[key].taskStatus = "cancelled";
+                if (key.match(/TBD*/)){
+                    delete self.graphProgressCollection[graphId].tasks[key];
+                }
             }
-            self.graphFinished.push(graphId);
-            return;
-        }
-        else {
-            self.graphProgressCollection[graphId].graphStatus = "succeeded";
-        }
 
-        for (var key in self.graphProgressCollection[graphId].tasks) {
-            if (key.match(/TBD*/)){
-                delete self.graphProgressCollection[graphId].tasks[key];
+            if (!payload.hasOwnProperty("taskProgress")) {
+                return;
             }
-        }
 
-        if (!payload.hasOwnProperty("taskProgress")) {
-            return;
-        }
+            let taskId = payload.taskProgress.taskId;
 
-        let taskId = payload.taskProgress.taskId;
+            if (!self.graphProgressCollection[graphId].tasks.hasOwnProperty(taskId)) {
+                self.graphProgressCollection[graphId].tasks[taskId] = {
+                    taskName: payload.taskProgress.taskName,
+                    taskProgress: parseInt(payload.taskProgress.progress.percentage),
+                    taskDesc: payload.taskProgress.progress.description
+                };
+            }
+            else {
+                self.graphProgressCollection[graphId].tasks[taskId].taskDesc =
+                    payload.taskProgress.progress.description;
+                self.graphProgressCollection[graphId].tasks[taskId].taskProgress =
+                    payload.taskProgress.progress.hasOwnProperty("percentage")?
+                    parseInt(payload.taskProgress.progress.percentage):
+                    Math.floor(100*payload.taskProgress.progress.value/payload.taskProgress.progress.maximum);
+            }
 
-        if (!self.graphProgressCollection[graphId].tasks.hasOwnProperty(taskId)) {
-            self.graphProgressCollection[graphId].tasks[taskId] = {
-                taskName: payload.taskProgress.taskName,
-                taskProgress: parseInt(payload.taskProgress.progress.percentage),
-                taskDesc: payload.taskProgress.progress.description
-            };
-        }
-        else {
-            self.graphProgressCollection[graphId].tasks[taskId].taskDesc =
-                payload.taskProgress.progress.description;
-            self.graphProgressCollection[graphId].tasks[taskId].taskProgress =
-                payload.taskProgress.progress.hasOwnProperty("percentage")?
-                parseInt(payload.taskProgress.progress.percentage):
-                Math.floor(100*payload.taskProgress.progress.value/payload.taskProgress.progress.maximum);
-        }
+            if (self.graphProgressCollection[graphId].tasks[taskId].taskProgress < 100) {
+                self.graphProgressCollection[graphId].tasks[taskId].taskStatus = "running";
+            }
+            else if (payload.taskProgress.progress.description.match(new RegExp('cancelled'))){
+                self.graphProgressCollection[graphId].tasks[taskId].taskStatus = "failed";
+            }
+            else {
+                self.graphProgressCollection[graphId].tasks[taskId].taskStatus = "succeeded";
+            }
 
-        if (self.graphProgressCollection[graphId].tasks[taskId].taskProgress < 100) {
-            self.graphProgressCollection[graphId].tasks[taskId].taskStatus = "running";
-        }
-        else {
-            self.graphProgressCollection[graphId].tasks[taskId].taskStatus = "succeeded";
-        }
+            var count = Object.keys(self.graphProgressCollection[graphId].tasks).length;
+            let curTask;
+            if (payload.taskProgress.progress.description.match(new RegExp('started'))){
+                curTask = payload.progress.value + 1;
+            }
+            else {
+                curTask = payload.progress.value;
+            }
 
-        var count = Object.keys(self.graphProgressCollection[graphId].tasks).length;
-        //console.log("!!!!", count);
-        //console.log(payload.progress.value);
-        //console.log(payload.progress.maximum);
-        for (let i = count; i < payload.progress.maximum; i ++) {
-            //console.log(i);
-            self.graphProgressCollection[graphId].tasks["TBD "+(i+1)]={
-                taskStatus: "pending",
-                taskProgress: 0
-            };
+            for (let i = curTask; i < payload.progress.maximum - 1; i ++) {
+                //console.log(i);
+                self.graphProgressCollection[graphId].tasks["TBD "+(i+1)]={
+                    taskStatus: "pending",
+                    taskProgress: 0
+                };
+            }
+
+            console.log('decode:', self.graphProgressCollection[graphId]);
+        })
+        if (self.msgQueue.length != 0) {
+            self.msgQueue = [];
+            self.setState(self.graphProgressCollection);
         }
     }
 
