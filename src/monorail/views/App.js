@@ -32,7 +32,7 @@ export default class App extends Component {
         console.log("Starting to monitor websocket");
         self.events = new ProgressEventsMessenger();
         self.events.connect();
-        setInterval(self.decodeProgress.bind(self), 1000);
+        setInterval(self.decodeProgress.bind(self), 100);
 
         self.events.listen(msg => {
 

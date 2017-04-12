@@ -41,7 +41,7 @@ export default class GraphProgressTable extends Component {
                         <TableHeaderColumn>Id</TableHeaderColumn>
                         <TableHeaderColumn>Description</TableHeaderColumn>
                         <TableHeaderColumn>Status</TableHeaderColumn>
-                        <TableHeaderColumn>Progress</TableHeaderColumn>
+                        <TableHeaderColumn width="400">Progress</TableHeaderColumn>
                     </TableRow>
                 </TableHeader>
             )
@@ -93,7 +93,6 @@ export default class GraphProgressTable extends Component {
                             status={this.props.graphData.graphStatus}
                             description={this.props.graphData.graphDesc}
                         />
-                        {this.renderTasks()}
                     </TableBody>
                 </Table>
                 <Divider />

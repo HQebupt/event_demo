@@ -28,10 +28,11 @@ export default class TaskProgress extends Component {
             backgroundColor: '#000000'
         },
         running: {
-            backgroundColor: '#000099'
+            backgroundColor: '#747a77'
+            //backgroundColor: '#000099'
         },
         succeeded: {
-            backgroundColor: '#00b300'
+            backgroundColor: '#747a77'
         },
         pending: {
             backgroundColor: '#808000'
@@ -56,9 +57,8 @@ export default class TaskProgress extends Component {
                 <TableRowColumn style={style}>{this.props.id}</TableRowColumn>
                 <TableRowColumn style={style}>{this.props.description}</TableRowColumn>
                 <TableRowColumn style={style}>{this.props.status}</TableRowColumn>
-                <TableRowColumn style={style}>
-                    <Badge badgeContent={this.props.value} primary={true}/>
-                    <LinearProgress mode="determinate" value={this.props.value} />
+                <TableRowColumn style={style} width="400">
+                    <LinearProgress color='#04f47c' mode="determinate" value={this.props.value} />
                 </TableRowColumn>
             </TableRow>
         )
