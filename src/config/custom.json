@@ -1,9 +1,9 @@
 {
   "Enable_RackHD_API_Auth": false,
   "Enable_RackHD_SSL": false,
-  "MonoRail_API": "10.62.59.150:9090/api/1.1",
-  "MonoRail_WSS": "10.62.59.222:9100",
-  "RackHD_API": "10.62.59.150:8080/api/2.0",
+  "MonoRail_API": "192.168.128.60:9090/api/1.1",
+  "MonoRail_WSS": "192.168.128.60:9100",
+  "RackHD_API": "192.168.128.60:8080/api/2.0",
   "RackHD_API_Auth_Token": "",
-  "RedFish_API": "10.62.59.150:8080/redfish"
+  "RedFish_API": "192.168.128.60:8080/redfish"
 }

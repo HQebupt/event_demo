@@ -91,6 +91,7 @@ module.exports = {
         publicPath: '/',
         contentBase: './static',
         historyApiFallback: true,
+        disableHostCheck: true,
         proxy: []
     }
 };
